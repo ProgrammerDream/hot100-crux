@@ -1,7 +1,7 @@
 /*
  * 卡库 v3（构建产物）：按题分组，每张卡=完整题解代码里挖掉一个临界点 + 题面。
  * 临界点/答案/解释来自 scripts/cards-flat.js（对抗式校验过），完整代码/题面来自 hot100 官方题解。
- * 勿手改；重建：node scripts/assemble-v3.js。共 99 题 / 363 张卡。
+ * 勿手改；重建：node scripts/assemble-v3.js。共 99 题 / 370 张卡。
  */
 window.CRUX_VERSION = "3";
 window.CRUX_PROBLEMS = [
@@ -924,6 +924,25 @@ window.CRUX_PROBLEMS = [
     "wrongWhy": {
      "l >= r": "当 lists 为空数组时初始调用是 merge(lists,0,-1)，此时 l=0、r=-1 满足 l>=r，会被误判为合法基例去访问 lists[0]，但空 vector 下标 0 越界，属于未定义行为",
      "l <= r": "只要不是 l>r 就恒为真，导致 l<r 的多元素区间也提前 return lists[l]，把区间内其它链表全部丢弃，合并结果错误"
+    }
+   },
+   {
+    "id": "p23-mergetwolists-attach-remainder",
+    "crux": "循环结束后必须把 aPtr、bPtr 中还没走完的那一条整体挂到 tail 后面，三元表达式的取值要跟哪条还有剩余节点对应，不能固定取某一边",
+    "answer": "aPtr ? aPtr : bPtr",
+    "blankOffset": 463,
+    "blankLen": 18,
+    "options": [
+     "aPtr ? aPtr : bPtr",
+     "aPtr",
+     "bPtr",
+     "bPtr ? aPtr : bPtr"
+    ],
+    "why": "while 循环退出时 aPtr、bPtr 中必有一个为空，另一个可能还有剩余节点；用 aPtr 非空则挂 aPtr、否则挂 bPtr，能保证不管是哪条链表先耗尽，剩余的另一条都会被整体接上。",
+    "wrongWhy": {
+     "aPtr": "当 aPtr 先耗尽为空、而 bPtr 还有剩余节点时，tail->next=aPtr 会把后继置为空指针，导致 bPtr 剩余的全部节点被丢弃",
+     "bPtr": "当 bPtr 先耗尽为空、而 aPtr 还有剩余节点时，tail->next=bPtr 会把后继置为空指针，导致 aPtr 剩余的全部节点被丢弃",
+     "bPtr ? aPtr : bPtr": "判断方向反了：循环退出时 bPtr 非空就意味着 aPtr 必为空（否则循环不会退出），此时取 aPtr 反而是空指针，两种情况下都取不到真正非空的那条剩余链表"
     }
    },
    {
@@ -3706,6 +3725,23 @@ window.CRUX_PROBLEMS = [
     }
    },
    {
+    "id": "p114-reconnect-loop-bound",
+    "crux": "循环上界必须是 n（节点总数），保证连到最后一个节点又不越界",
+    "answer": "n",
+    "blankOffset": 179,
+    "blankLen": 1,
+    "options": [
+     "n",
+     "n - 1",
+     "n + 1"
+    ],
+    "why": "n 是前序遍历得到的节点总数，i 需要一直取到 n-1 才能把最后一个节点 l[n-1] 也接到链上，用 i < n 恰好让 i 遍历完 1..n-1，共完成 n-1 次连接，覆盖所有相邻对。",
+    "wrongWhy": {
+     "n - 1": "循环提前一次结束，最后一次 i=n-1 不会执行，导致最后一个节点 l[n-1] 永远没有被接到链表末尾，展开结果少连一个节点。",
+     "n + 1": "i 会取到 n，此时 curr = l.at(n) 越界（合法下标只到 n-1），vector::at 抛异常导致程序崩溃。"
+    }
+   },
+   {
     "id": "p114-preorder-null-check",
     "crux": "前序遍历递归入口必须判断 root != NULL 才继续访问和递归，方向反了会解引用空指针",
     "answer": "!=",
@@ -5397,6 +5433,25 @@ window.CRUX_PROBLEMS = [
   "code": "class Trie {\nprivate:\n    vector<Trie*> children;\n    bool isEnd;\n\n    Trie* searchPrefix(string prefix) {\n        Trie* node = this;\n        for (char ch : prefix) {\n            ch -= 'a';\n            if (node->children[ch] == nullptr) {\n                return nullptr;\n            }\n            node = node->children[ch];\n        }\n        return node;\n    }\n\npublic:\n    Trie() : children(26), isEnd(false) {}\n\n    void insert(string word) {\n        Trie* node = this;\n        for (char ch : word) {\n            ch -= 'a';\n            if (node->children[ch] == nullptr) {\n                node->children[ch] = new Trie();\n            }\n            node = node->children[ch];\n        }\n        node->isEnd = true; // 单词结尾打标记\n    }\n\n    bool search(string word) {\n        Trie* node = this->searchPrefix(word);\n        return node != nullptr && node->isEnd;\n    }\n\n    bool startsWith(string prefix) {\n        return this->searchPrefix(prefix) != nullptr;\n    }\n};",
   "cards": [
    {
+    "id": "p208-trie-char-to-index-ch-minus-a",
+    "crux": "字符转子节点下标时用 'a' 做基准偏移",
+    "answer": "ch -= 'a';",
+    "blankOffset": 515,
+    "blankLen": 10,
+    "options": [
+     "ch -= 'a';",
+     "ch -= 'A';",
+     "ch -= '0';",
+     "// 不做转换，直接用 ch 作下标"
+    ],
+    "why": "题目/hints 明确：children 是 26 叉（小写字母），下标要用 ch - 'a' 映射到 0~25；这是把字符转成数组合法下标的唯一正确偏移量。",
+    "wrongWhy": {
+     "ch -= 'A';": "按大写字母的 ASCII 值做偏移，输入是小写字母时会得到 32~57 的越界下标，vector<Trie*> children(26) 直接越界访问（未定义行为/崩溃）。",
+     "ch -= '0';": "按数字字符的 ASCII 值偏移，字母 'a'~'z' 会被映射到 49~74，同样越界访问 children，逻辑完全错误。",
+     "// 不做转换，直接用 ch 作下标": "字符的原始 ASCII 值（如 'a'=97）远超 children 的合法下标范围 0~25，直接越界，程序崩溃或读到脏内存。"
+    }
+   },
+   {
     "id": "p208-trie-search-null-then-isend-order",
     "crux": "search 中先判空、且用 && 短路才能安全访问 isEnd",
     "answer": "node != nullptr && node->isEnd",
@@ -5432,6 +5487,25 @@ window.CRUX_PROBLEMS = [
      "this->searchPrefix(prefix) != nullptr && this->searchPrefix(prefix)->isEnd": "把 search 的 isEnd 判断错误地搬到了 startsWith 里，会导致例如插入 \"apple\" 后 startsWith(\"app\") 本应为 true 却被误判为 false（因为 \"app\" 节点的 isEnd 是 false）。",
      "this->searchPrefix(prefix) == nullptr": "把相等关系写反，前缀存在时返回 false、不存在时返回 true，逻辑完全颠倒。",
      "this->search(prefix)": "错误地复用了要求完整单词匹配（isEnd 为真）的 search，导致只有完整插入过的单词才被判定为“有此前缀”，非完整单词的合法前缀会被误判为不存在。"
+    }
+   },
+   {
+    "id": "p208-trie-insert-check-child-null-before-create",
+    "crux": "insert 时先判子指针是否为空，为空才 new 新节点",
+    "answer": "node->children[ch] == nullptr",
+    "blankOffset": 206,
+    "blankLen": 29,
+    "options": [
+     "node->children[ch] == nullptr",
+     "node->children[ch] != nullptr",
+     "node->isEnd == false",
+     "ch == nullptr"
+    ],
+    "why": "hints 指出「插入时缺节点就新建」：只有当前字符对应的子节点还不存在（为空）时才需要 new 一个 Trie 节点，避免重复创建覆盖已有子树、丢失后续已插入的数据。",
+    "wrongWhy": {
+     "node->children[ch] != nullptr": "条件写反，会在子节点已存在时才新建（覆盖丢弃原有子树及其下所有已插入单词），而子节点为空真正需要创建时反而跳过，node->children[ch] 仍为空指针，下一行 node = node->children[ch] 后续访问会崩溃。",
+     "node->isEnd == false": "isEnd 是当前节点是否为某单词结尾的标记，与「该字符对应子节点是否存在」无关，用它做判断条件文不对题，无法正确控制何时新建子节点。",
+     "ch == nullptr": "ch 是转换后的 int/char 下标（0~25），不是指针，不能与 nullptr 比较，编译不通过；即便强行类型转换语义上也无法表达“子节点是否存在”。"
     }
    }
   ]
@@ -6418,6 +6492,25 @@ window.CRUX_PROBLEMS = [
   "code": "class Solution {\npublic:\n    int coinChange(vector<int>& coins, int amount) {\n        int Max = amount + 1;\n        vector<int> dp(amount + 1, Max); // 初值 amount+1 表示暂不可达\n        dp[0] = 0;\n        for (int i = 1; i <= amount; ++i) {\n            for (int j = 0; j < (int)coins.size(); ++j) {\n                if (coins[j] <= i) {\n                    dp[i] = min(dp[i], dp[i - coins[j]] + 1); // 枚举最后一枚硬币，取最少数量\n                }\n            }\n        }\n        return dp[amount] > amount ? -1 : dp[amount];\n    }\n};",
   "cards": [
    {
+    "id": "p322-max-init-value",
+    "crux": "不可达标记值的初始化必须是 amount+1，既要大到不会被任何合法解覆盖，又不能大到溢出",
+    "answer": "amount + 1",
+    "blankOffset": 96,
+    "blankLen": 10,
+    "options": [
+     "amount + 1",
+     "amount",
+     "INT_MAX",
+     "0"
+    ],
+    "why": "solutionText 明确：dp 初值用 amount+1 这个『不可能的大值』表示暂不可达——因为凑出任意 1~amount 的金额最多用 amount 枚 1 元硬币即可达成，dp 真实值不会超过 amount，所以 amount+1 一定大于任何合法解，可安全作为哨兵；同时它是有限整数，后续 +1 运算不会溢出。",
+    "wrongWhy": {
+     "0": "把所有金额初始化为 0 会让 dp[i] = min(dp[i], ...) 一开始就等于 0，导致每个金额都被误判为『0 枚硬币就能凑出』，结果全错",
+     "amount": "amount 本身可能是一个合法的可达值（例如全用面值1的硬币），把它当作『不可达』标记会和真实解混淆，导致最终 dp[amount] > amount 的判断永远不成立，无法正确识别不可达情况",
+     "INT_MAX": "后续转移里要执行 dp[i - coins[j]] + 1，若某个 dp 值是 INT_MAX 会发生整数溢出，产生未定义行为或变成负数，破坏 min 比较逻辑"
+    }
+   },
+   {
     "id": "p322-dp-base-case-zero",
     "crux": "dp[0] 必须设为 0，作为递推的正确起点",
     "answer": "0",
@@ -6585,6 +6678,23 @@ window.CRUX_PROBLEMS = [
   "descHtml": "<p>给定一个经过编码的字符串，返回它解码后的字符串。</p>\n\n<p>编码规则为: <code>k[encoded_string]</code>，表示其中方括号内部的 <code>encoded_string</code> 正好重复 <code>k</code> 次。注意 <code>k</code> 保证为正整数。</p>\n\n<p>你可以认为输入字符串总是有效的；输入字符串中没有额外的空格，且输入的方括号总是符合格式要求的。</p>\n\n<p>此外，你可以认为原始数据不包含数字，所有的数字只表示重复的次数 <code>k</code> ，例如不会出现像&nbsp;<code>3a</code>&nbsp;或&nbsp;<code>2[4]</code>&nbsp;的输入。</p>\n\n<p>测试用例保证输出的长度不会超过&nbsp;<code>10<sup>5</sup></code>。</p>\n\n<p>&nbsp;</p>\n\n<p><strong>示例 1：</strong></p>\n\n<pre>\n<strong>输入：</strong>s = \"3[a]2[bc]\"\n<strong>输出：</strong>\"aaabcbc\"\n</pre>\n\n<p><strong>示例 2：</strong></p>\n\n<pre>\n<strong>输入：</strong>s = \"3[a2[c]]\"\n<strong>输出：</strong>\"accaccacc\"\n</pre>\n\n<p><strong>示例 3：</strong></p>\n\n<pre>\n<strong>输入：</strong>s = \"2[abc]3[cd]ef\"\n<strong>输出：</strong>\"abcabccdcdcdef\"\n</pre>\n\n<p><strong>示例 4：</strong></p>\n\n<pre>\n<strong>输入：</strong>s = \"abc3[cd]xyz\"\n<strong>输出：</strong>\"abccdcdcdxyz\"\n</pre>\n\n<p>&nbsp;</p>\n\n<p><strong>提示：</strong></p>\n\n<ul>\n\t<li><code>1 &lt;= s.length &lt;= 30</code></li>\n\t<li><code>s</code>&nbsp;由小写英文字母、数字和方括号&nbsp;<code>'[]'</code> 组成</li>\n\t<li><code>s</code>&nbsp;保证是一个&nbsp;<strong>有效</strong>&nbsp;的输入。</li>\n\t<li><code>s</code>&nbsp;中所有整数的取值范围为&nbsp;<code>[1, 300]</code>&nbsp;</li>\n</ul>",
   "code": "class Solution {\npublic:\n    string getDigits(string &s, size_t &ptr) {\n        string ret = \"\";\n        while (isdigit(s[ptr])) {\n            ret.push_back(s[ptr++]);\n        }\n        return ret;\n    }\n\n    string getString(vector <string> &v) {\n        string ret;\n        for (const auto &s: v) {\n            ret += s;\n        }\n        return ret;\n    }\n\n    string decodeString(string s) {\n        vector <string> stk;\n        size_t ptr = 0;\n\n        while (ptr < s.size()) {\n            char cur = s[ptr];\n            if (isdigit(cur)) {\n                // 获取一个数字并进栈\n                string digits = getDigits(s, ptr);\n                stk.push_back(digits);\n            } else if (isalpha(cur) || cur == '[') {\n                // 获取一个字母并进栈\n                stk.push_back(string(1, s[ptr++]));\n            } else {\n                ++ptr;\n                vector <string> sub;\n                while (stk.back() != \"[\") {\n                    sub.push_back(stk.back());\n                    stk.pop_back();\n                }\n                reverse(sub.begin(), sub.end());\n                // 左括号出栈\n                stk.pop_back();\n                // 此时栈顶为当前 sub 对应的字符串应该出现的次数\n                int repTime = stoi(stk.back());\n                stk.pop_back();\n                string t, o = getString(sub);\n                // 构造字符串\n                while (repTime--) t += o;\n                // 将构造好的字符串入栈\n                stk.push_back(t);\n            }\n        }\n\n        return getString(stk);\n    }\n};",
   "cards": [
+   {
+    "id": "p394-getdigits-while-vs-if",
+    "crux": "getDigits 读取多位数字时必须用 while 循环连续读完所有数字字符，若只判断一次会漏读多位数字",
+    "answer": "while (isdigit(s[ptr]))",
+    "blankOffset": 105,
+    "blankLen": 23,
+    "options": [
+     "while (isdigit(s[ptr]))",
+     "if (isdigit(s[ptr]))",
+     "while (isdigit(s[ptr++]))"
+    ],
+    "why": "solutionText 明确提到「易错点：数字可能多位，要连续读完」，所以必须用 while 循环反复判断当前字符是否还是数字，直到遇到非数字字符为止，才能把像 \"112\" 这样的多位数字整体解析成一个 token。",
+    "wrongWhy": {
+     "if (isdigit(s[ptr]))": "if 只判断并读取一次就退出，遇到多位数字（如 \"112[a]\"）只会读到第一位 '1' 就当作重复次数，后面的 '1' '2' 会被当成普通字符处理，解析结果完全错误。",
+     "while (isdigit(s[ptr++]))": "在循环条件里就把 ptr 提前自增，会导致条件判断用的字符和后面 push_back 里实际取的字符错位，多跳过一个字符，数字串解析出现漏字符或读错字符。"
+    }
+   },
    {
     "id": "p394-reptime-read-before-pop",
     "crux": "必须先用 stoi(stk.back()) 读出重复次数，再执行 pop_back()，顺序不能颠倒",
@@ -7172,6 +7282,25 @@ window.CRUX_PROBLEMS = [
      "dis[r][c]": "少加了这一步的时间增量，会让新感染格子和它的来源格子记同一个时刻，最终 ans 取到的最短时间偏小，答案错误。",
      "dis[tx][ty] + 1": "dis[tx][ty] 此时还是初始值 -1（尚未赋值），用它自己的旧值来计算会得到 0，彻底丢失了真实的层数信息。",
      "dis[r][c] - 1": "方向反了，扩散一层时间应该递增而不是递减，会让距离越传越小甚至出现负数，破坏 BFS 的层次含义。"
+    }
+   },
+   {
+    "id": "p994-rotten-oranges-bounds-check",
+    "crux": "越界判断必须用 tx < 0 || tx >= n，行方向的下界用 < 0、上界用 >= n（左闭右开）",
+    "answer": "tx < 0|| tx >= n",
+    "blankOffset": 906,
+    "blankLen": 16,
+    "options": [
+     "tx < 0|| tx >= n",
+     "tx <= 0|| tx >= n",
+     "tx < 0|| tx > n",
+     "tx < 0|| tx >= n-1"
+    ],
+    "why": "grid 的合法行下标是 [0, n-1]，写成左闭右开的 [0, n) 需要用 tx < 0（下界越界）和 tx >= n（上界越界，注意是 >= 不是 >）来判断，这样才能精确排除所有非法下标而不误伤合法边界行。",
+    "wrongWhy": {
+     "tx <= 0|| tx >= n": "把下界越界条件写成 tx <= 0，会把合法的第 0 行也当成越界跳过，导致第一行永远无法被感染。",
+     "tx < 0|| tx > n": "上界越界条件写成 tx > n，会把非法下标 tx == n 漏判为合法，访问 dis[n][...] / grid[n][...] 造成数组越界读写。",
+     "tx < 0|| tx >= n-1": "上界收得过紧，会把合法的最后一行（tx == n-1）也当成越界跳过，导致最后一行永远无法被感染。"
     }
    }
   ]

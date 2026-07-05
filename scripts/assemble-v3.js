@@ -62,6 +62,33 @@ function anchor(fullCode, excerpt, answer) {
   return { offset: g + colInFull, len: answer.length };
 }
 
+// 7 张自动锚定失败卡的手工精准定位：block=在完整代码里唯一的上下文块内定位答案；occ=答案的第几次出现
+var OVERRIDES = {
+  "p23-mergetwolists-attach-remainder": { ans: "aPtr ? aPtr : bPtr", occ: 1 },   // 完整代码里裹了括号
+  "p114-reconnect-loop-bound": { block: "i < n; i++", ans: "n" },                 // n 太常见，用块内定位
+  "p994-rotten-oranges-bounds-check": { ans: "tx < 0|| tx >= n", occ: 1 },        // 节选那行带注释没匹配上
+  "p208-trie-char-to-index-ch-minus-a": { ans: "ch -= 'a';", occ: 2 },            // insert/search 各一处，取 search(prefix)
+  "p208-trie-insert-check-child-null-before-create": { ans: "node->children[ch] == nullptr", occ: 1 }, // 取 insert(new Trie)
+  "p394-getdigits-while-vs-if": { ans: "while (isdigit(s[ptr]))", occ: 1 },       // 答案少了行尾 {
+  "p322-max-init-value": { ans: "amount + 1", occ: 1 }                            // 题解用 Max 变量，锚到 int Max = amount+1
+};
+function overrideAnchor(full, ov) {
+  if (ov.block) {
+    var bp = full.indexOf(ov.block);
+    if (bp < 0 || full.indexOf(ov.block, bp + 1) >= 0) { return null; }  // 块必须唯一
+    var inside = ov.block.indexOf(ov.ans);
+    if (inside < 0) { return null; }
+    return { offset: bp + inside, len: ov.ans.length };
+  }
+  var occ = ov.occ || 1, idx = -1, from = 0;
+  for (var k = 0; k < occ; k++) {
+    idx = full.indexOf(ov.ans, from);
+    if (idx < 0) { return null; }
+    from = idx + 1;
+  }
+  return { offset: idx, len: ov.ans.length };
+}
+
 // 按题分组
 var byProb = {};
 var order = [];
@@ -70,7 +97,7 @@ CARDS.forEach(function (c) {
   var m = meta[c.problemId];
   if (!m) { dropped.push(c.id + "(无题目)"); return; }
   var full = m.solutionCode;
-  var r = anchor(full, String(c.code), String(c.answer));
+  var r = OVERRIDES[c.id] ? overrideAnchor(full, OVERRIDES[c.id]) : anchor(full, String(c.code), String(c.answer));
   if (!r || full.substr(r.offset, r.len) !== c.answer) { dropped.push(c.id + "(锚定失败)"); return; }
   if (!byProb[c.problemId]) {
     byProb[c.problemId] = {
