@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">临界点</string>
+    <string name="title_activity_main">临界点</string>
+    <string name="package_name">com.programmerdream.hot100crux</string>
+    <string name="custom_url_scheme">com.programmerdream.hot100crux</string>
+</resources>
