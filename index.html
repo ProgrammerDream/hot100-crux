@@ -64,10 +64,23 @@
 
   pre.code {
     margin: 0; background: var(--panel); border: 1px solid var(--line);
-    border-radius: 12px; padding: 14px; overflow-x: auto;
+    border-radius: 12px; padding: 14px; overflow: auto; max-height: 46vh;
     font: 13px/1.7 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
     color: var(--code); white-space: pre; tab-size: 4;
   }
+
+  /* 题面：默认折叠，点开看完整题目，聚焦在代码临界点上 */
+  details.desc { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  details.desc > summary {
+    cursor: pointer; padding: 10px 14px; font-size: 13px; color: var(--muted);
+    list-style: none; user-select: none;
+  }
+  details.desc > summary::-webkit-details-marker { display: none; }
+  details.desc[open] > summary { border-bottom: 1px solid var(--line); color: var(--text); }
+  .desc-body { padding: 10px 14px; max-height: 40vh; overflow-y: auto; font-size: 14px; line-height: 1.6; }
+  .desc-body pre { white-space: pre-wrap; background: var(--panel2); padding: 8px 10px; border-radius: 8px; overflow-x: auto; }
+  .desc-body code { background: var(--panel2); padding: 1px 5px; border-radius: 5px; font-size: 13px; }
+  .desc-body img { display: none; }
   .slot {
     display: inline-block; min-width: 40px; text-align: center;
     border-bottom: 2px solid var(--slot); color: var(--slot); font-weight: 700;
@@ -190,7 +203,18 @@
     return Math.min(box - 1, 4);
   }
 
-  var CARDS = window.CRUX_CARDS || [];
+  // 卡库 v3 按题分组；展平成「一个临界点=一张卡」的运行时列表，每张卡带上本题完整代码与题面
+  var CARDS = [];
+  (window.CRUX_PROBLEMS || []).forEach(function (p) {
+    (p.cards || []).forEach(function (cd) {
+      CARDS.push({
+        id: cd.id, problemId: p.id, problemTitle: p.title, category: p.category,
+        descHtml: p.descHtml, code: p.code, blankOffset: cd.blankOffset, blankLen: cd.blankLen,
+        crux: cd.crux, answer: cd.answer, options: cd.options, why: cd.why, wrongWhy: cd.wrongWhy
+      });
+    });
+  });
+  window.CRUX_CARDS = CARDS;  // 供自测脚本按 crux 定位当前卡
 
   // ---------- 存储 ----------
   function loadJSON(key, fallback) {
@@ -339,6 +363,7 @@
     meta.appendChild(el("span", "fromq", card.problemTitle || ("#" + card.problemId)));
     main.appendChild(meta);
 
+    main.appendChild(renderDesc(card));
     main.appendChild(el("div", "crux", card.crux || "选出正确的写法"));
 
     main.appendChild(renderCode(card));
@@ -347,16 +372,27 @@
     main.appendChild(renderActions(card));
   }
 
-  // 把 code 按 {{B}} 切开，中间塞一个可变的填空槽
+  // 题面：折叠面板，点开看完整题目（构建期已去掉离线打不开的图片/脚本）
+  function renderDesc(card) {
+    var box = el("details", "desc");
+    box.appendChild(el("summary", null, "📄 展开题目描述"));
+    var body = el("div", "desc-body");
+    body.innerHTML = card.descHtml || "（暂无题面）";
+    box.appendChild(body);
+    return box;
+  }
+
+  // 完整题解代码，只在当前临界点处 [blankOffset, +blankLen) 挖一个填空槽
   var slotEl = null;
   function renderCode(card) {
     var pre = el("pre", "code");
-    var parts = String(card.code).split("{{B}}");
-    pre.appendChild(document.createTextNode(parts[0]));
+    var code = String(card.code);
+    var off = card.blankOffset, len = card.blankLen;
+    pre.appendChild(document.createTextNode(code.slice(0, off)));
     slotEl = el("span", "slot");
     updateSlot(card);
     pre.appendChild(slotEl);
-    pre.appendChild(document.createTextNode(parts.length > 1 ? parts[1] : ""));
+    pre.appendChild(document.createTextNode(code.slice(off + len)));
     return pre;
   }
 
@@ -571,7 +607,7 @@
   document.getElementById("btnExport").onclick = function () {
     var payload = {
       app: "hot100-crux",
-      version: window.CRUX_CARDS_VERSION || "?",
+      version: window.CRUX_VERSION || "?",
       exportedAt: new Date().toISOString(),
       progress: progress,
       reports: reports

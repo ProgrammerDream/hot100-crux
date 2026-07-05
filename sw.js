@@ -3,7 +3,7 @@
  * 缓存名带版本号；改动内容时提升 CACHE 版本，旧缓存会在 activate 时清掉，
  * 保证纠错后的卡片能推到老用户（解决「一条错解释被永久焊死」的问题）。
  */
-var CACHE = "crux-v1";
+var CACHE = "crux-v3";
 var SHELL = [
   "./",
   "./index.html",
