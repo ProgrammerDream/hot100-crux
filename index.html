@@ -1,0 +1,661 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f1420" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="临界点" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<title>临界点 · Hot100 刷题卡</title>
+
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171d2b;
+    --panel2: #1e2636;
+    --line: #2a3346;
+    --text: #e6ebf5;
+    --muted: #8b96ad;
+    --accent: #5b9dff;
+    --ok: #38d39f;
+    --bad: #ff6b6b;
+    --slot: #f5c451;
+    --code: #cdd6e8;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f6fb; --panel: #ffffff; --panel2: #eef2f9; --line: #dbe2ee;
+      --text: #1a2233; --muted: #64708a; --accent: #2f6fe0; --ok: #14a97b;
+      --bad: #d64545; --slot: #b8860b; --code: #2a3346;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap { max-width: 640px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+  header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; background: var(--bg); z-index: 5;
+  }
+  header .brand { font-weight: 700; letter-spacing: .5px; }
+  header .stats { margin-left: auto; display: flex; gap: 12px; font-size: 12px; color: var(--muted); }
+  header .stats b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .iconbtn {
+    border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    border-radius: 9px; padding: 6px 10px; font-size: 13px; cursor: pointer;
+  }
+  .iconbtn:active { background: var(--panel2); }
+
+  main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .chip-cat {
+    font-size: 12px; color: var(--accent); border: 1px solid var(--line);
+    background: var(--panel); border-radius: 999px; padding: 2px 10px;
+  }
+  .crux { font-size: 17px; font-weight: 600; }
+  .fromq { font-size: 12px; color: var(--muted); }
+
+  pre.code {
+    margin: 0; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px; overflow-x: auto;
+    font: 13px/1.7 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    color: var(--code); white-space: pre; tab-size: 4;
+  }
+  .slot {
+    display: inline-block; min-width: 40px; text-align: center;
+    border-bottom: 2px solid var(--slot); color: var(--slot); font-weight: 700;
+    padding: 0 6px; border-radius: 4px 4px 0 0;
+  }
+  .slot.filled { background: rgba(91,157,255,.14); color: var(--accent); border-bottom-color: var(--accent); }
+  .slot.ok { background: rgba(56,211,159,.16); color: var(--ok); border-bottom-color: var(--ok); }
+  .slot .miss { color: var(--bad); text-decoration: line-through; margin-right: 8px; font-weight: 600; }
+
+  .options { display: flex; flex-wrap: wrap; gap: 10px; }
+  .opt {
+    font: 14px/1 "SFMono-Regular", Consolas, monospace;
+    background: var(--panel2); color: var(--text);
+    border: 1.5px solid var(--line); border-radius: 10px;
+    padding: 12px 16px; min-height: 44px; cursor: pointer; user-select: none;
+  }
+  .opt:active { transform: translateY(1px); }
+  .opt.sel { border-color: var(--accent); background: rgba(91,157,255,.14); }
+  .opt.correct { border-color: var(--ok); background: rgba(56,211,159,.16); color: var(--ok); }
+  .opt.wrong { border-color: var(--bad); background: rgba(255,107,107,.14); color: var(--bad); }
+  .opt[disabled] { cursor: default; opacity: .95; }
+
+  .reveal { display: none; flex-direction: column; gap: 10px; }
+  .reveal.show { display: flex; }
+  .banner { font-weight: 700; font-size: 15px; }
+  .banner.ok { color: var(--ok); }
+  .banner.bad { color: var(--bad); }
+  .why {
+    background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--text);
+  }
+  .why.wrong { border-left-color: var(--bad); }
+  .why .lbl { color: var(--muted); font-size: 12px; display: block; margin-bottom: 4px; }
+
+  .actions { display: flex; gap: 10px; margin-top: 4px; }
+  .btn {
+    flex: 1; border: none; border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 600;
+    background: var(--accent); color: #fff; cursor: pointer; min-height: 50px;
+  }
+  .btn[disabled] { opacity: .4; cursor: default; }
+  .btn.ghost { flex: 0 0 auto; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
+
+  .done { text-align: center; padding: 40px 16px; color: var(--muted); }
+  .done h2 { color: var(--text); }
+
+  .sheet {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none;
+    align-items: flex-end; z-index: 20;
+  }
+  .sheet.show { display: flex; }
+  .sheet .card {
+    width: 100%; max-width: 640px; margin: 0 auto; background: var(--panel);
+    border-radius: 16px 16px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+  }
+  .sheet h3 { margin: 0 0 12px; }
+  .row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .row .btn { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+  .muted { color: var(--muted); font-size: 12px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+    padding: 10px 16px; border-radius: 999px; font-size: 13px; z-index: 30;
+    opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="brand">临界点</span>
+    <div class="stats">
+      <span>今日到期 <b id="stDue">0</b></span>
+      <span>已掌握 <b id="stMastered">0</b>/<b id="stTotal">0</b></span>
+    </div>
+    <button class="iconbtn" id="btnMenu" style="margin-left:12px">☰</button>
+  </header>
+
+  <main id="main"><!-- 动态渲染 --></main>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="card">
+    <h3>存档与设置</h3>
+    <div class="row">
+      <button class="btn" id="btnExport">导出进度(备份)</button>
+      <button class="btn" id="btnImport">导入进度</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="btnStudyAll">忽略每日上限 · 全部练一遍</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="btnReset" style="color:var(--bad)">清空本机进度</button>
+    </div>
+    <p class="muted">进度只存在本机浏览器。换手机 / 清缓存前请先「导出备份」，否则会丢。已请求持久化存储以尽量抗清理。</p>
+    <input type="file" id="fileImport" accept="application/json" style="display:none" />
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="cards.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // @formatter:off
+  // ---------- 常量 ----------
+  var PROGRESS_KEY = "crux.progress.v1";   // { [cardId]: {box, due, seen, correct, wrong} }
+  var REPORTS_KEY  = "crux.reports.v1";    // [{cardId, note, at}]
+  var DAYMETA_KEY  = "crux.daymeta.v1";    // { day, newCount }  当日已引入的新卡数
+  var MAX_NEW_PER_DAY = 8;                 // 每天最多引入的新卡，防「到期墙」
+  var BOX_MAX = 5;                         // Leitner 盒子上限
+  // 盒子 -> 复习间隔(天)：box1 当天再来，最长封顶 4 天，避免长间隔触发存储清理 + 到期饥荒
+  // @formatter:on
+  function intervalForBox(box) {
+    if (box <= 1) {
+      return 0;
+    }
+    return Math.min(box - 1, 4);
+  }
+
+  var CARDS = window.CRUX_CARDS || [];
+
+  // ---------- 存储 ----------
+  function loadJSON(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) {
+        return fallback;
+      }
+      return JSON.parse(raw);
+    } catch (e) {
+      return fallback;
+    }
+  }
+  function saveJSON(key, val) {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch (e) {
+      toast("保存失败：存储空间可能已满或被禁用");
+    }
+  }
+
+  var progress = loadJSON(PROGRESS_KEY, {});
+  var reports  = loadJSON(REPORTS_KEY, []);
+
+  function today() {
+    return Math.floor(Date.now() / 86400000);
+  }
+
+  // 读取当日新卡计数，跨天自动归零
+  function dayMeta() {
+    var m = loadJSON(DAYMETA_KEY, null);
+    if (!m || m.day !== today()) {
+      m = { day: today(), newCount: 0 };
+      saveJSON(DAYMETA_KEY, m);
+    }
+    return m;
+  }
+  function bumpNewCount() {
+    var m = dayMeta();
+    m.newCount += 1;
+    saveJSON(DAYMETA_KEY, m);
+  }
+
+  function progOf(id) {
+    var p = progress[id];
+    if (p) {
+      return p;
+    }
+    return { box: 1, due: 0, seen: 0, correct: 0, wrong: 0 };
+  }
+
+  // ---------- 队列 ----------
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  // 到期复习卡（seen>0 且 due<=今天）永远进队；新卡按每日上限少量引入
+  function buildQueue() {
+    var reviews = [];
+    var news = [];
+    for (var i = 0; i < CARDS.length; i++) {
+      var c = CARDS[i];
+      var p = progOf(c.id);
+      if (p.seen > 0) {
+        if (p.due <= today()) {
+          reviews.push(c);
+        }
+        continue;
+      }
+      news.push(c);
+    }
+    var budget = Math.max(0, MAX_NEW_PER_DAY - dayMeta().newCount);
+    news = shuffle(news).slice(0, budget);
+    return shuffle(reviews.concat(news));
+  }
+
+  // 无视调度，把所有卡都练一遍（今日已清空时的「继续刷」出口）
+  function buildQueueAll() {
+    return shuffle(CARDS.slice());
+  }
+
+  // ---------- 会话状态 ----------
+  var queue = buildQueue();
+  var qpos = 0;
+  var phase = "answering";  // answering | revealed
+  var selected = null;
+  var currentOptions = [];  // 本次已打乱的候选
+  var guessed = false;
+
+  // ---------- 渲染 ----------
+  var main = document.getElementById("main");
+
+  function refreshStats() {
+    var mastered = 0, due = 0;
+    for (var i = 0; i < CARDS.length; i++) {
+      var p = progOf(CARDS[i].id);
+      if (p.box >= BOX_MAX && p.seen > 0) {
+        mastered++;
+      }
+      if (p.seen > 0 && p.due <= today()) {
+        due++;
+      }
+    }
+    document.getElementById("stDue").textContent = due;
+    document.getElementById("stMastered").textContent = mastered;
+    document.getElementById("stTotal").textContent = CARDS.length;
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (text != null) { e.textContent = text; }
+    return e;
+  }
+
+  function render() {
+    refreshStats();
+    main.textContent = "";
+
+    if (CARDS.length === 0) {
+      main.appendChild(doneScreen("题库还没加载", "cards.js 里暂时没有卡片。"));
+      return;
+    }
+    if (qpos >= queue.length) {
+      var m = dayMeta();
+      var tip = "今天到期的卡都刷完了。已引入新卡 " + m.newCount + " 张。";
+      var d = doneScreen("本轮清空 🎉", tip);
+      var again = el("button", "btn", "忽略每日上限 · 继续刷全部");
+      again.style.maxWidth = "320px";
+      again.style.margin = "16px auto 0";
+      again.onclick = studyAll;
+      d.appendChild(again);
+      main.appendChild(d);
+      return;
+    }
+
+    var card = queue[qpos];
+
+    var meta = el("div", "meta");
+    meta.appendChild(el("span", "chip-cat", card.category || "临界点"));
+    meta.appendChild(el("span", "fromq", card.problemTitle || ("#" + card.problemId)));
+    main.appendChild(meta);
+
+    main.appendChild(el("div", "crux", card.crux || "选出正确的写法"));
+
+    main.appendChild(renderCode(card));
+    main.appendChild(renderOptions(card));
+    main.appendChild(renderReveal(card));
+    main.appendChild(renderActions(card));
+  }
+
+  // 把 code 按 {{B}} 切开，中间塞一个可变的填空槽
+  var slotEl = null;
+  function renderCode(card) {
+    var pre = el("pre", "code");
+    var parts = String(card.code).split("{{B}}");
+    pre.appendChild(document.createTextNode(parts[0]));
+    slotEl = el("span", "slot");
+    updateSlot(card);
+    pre.appendChild(slotEl);
+    pre.appendChild(document.createTextNode(parts.length > 1 ? parts[1] : ""));
+    return pre;
+  }
+
+  function updateSlot(card) {
+    if (!slotEl) { return; }
+    slotEl.className = "slot";
+    slotEl.textContent = "";
+    if (phase === "revealed") {
+      if (selected !== null && selected !== card.answer) {
+        slotEl.appendChild(el("span", "miss", selected));
+      }
+      slotEl.appendChild(document.createTextNode(card.answer));
+      slotEl.classList.add("ok");
+      return;
+    }
+    if (selected !== null) {
+      slotEl.textContent = selected;
+      slotEl.classList.add("filled");
+      return;
+    }
+    slotEl.textContent = "▢";
+  }
+
+  var optEls = [];
+  function renderOptions(card) {
+    var box = el("div", "options");
+    optEls = [];
+    for (var i = 0; i < currentOptions.length; i++) {
+      (function (opt) {
+        var b = el("button", "opt", opt);
+        if (phase === "answering") {
+          if (selected === opt) { b.classList.add("sel"); }
+          b.onclick = function () { onSelect(card, opt); };
+        }
+        if (phase === "revealed") {
+          b.setAttribute("disabled", "");
+          if (opt === card.answer) { b.classList.add("correct"); }
+          if (opt === selected && opt !== card.answer) { b.classList.add("wrong"); }
+        }
+        box.appendChild(b);
+        optEls.push(b);
+      })(currentOptions[i]);
+    }
+    return box;
+  }
+
+  function renderReveal(card) {
+    var wrap = el("div", "reveal" + (phase === "revealed" ? " show" : ""));
+    if (phase !== "revealed") {
+      return wrap;
+    }
+    var correct = (selected === card.answer);
+    var banner = el("div", "banner " + (correct ? "ok" : "bad"),
+      correct ? (guessed ? "选对了（但你标了「蒙的」，仍会尽快再考）" : "正确 ✓") : "选错了 ✗");
+    wrap.appendChild(banner);
+
+    var why = el("div", "why");
+    var lbl = el("span", "lbl", "为什么是 " + card.answer);
+    why.appendChild(lbl);
+    why.appendChild(document.createTextNode(card.why || ""));
+    wrap.appendChild(why);
+
+    // 若选错，额外解释他选的那个为什么错
+    if (!correct && card.wrongWhy && card.wrongWhy[selected]) {
+      var ww = el("div", "why wrong");
+      ww.appendChild(el("span", "lbl", "你选的 " + selected + " 为什么错"));
+      ww.appendChild(document.createTextNode(card.wrongWhy[selected]));
+      wrap.appendChild(ww);
+    }
+    return wrap;
+  }
+
+  function renderActions(card) {
+    var box = el("div", "actions");
+    if (phase === "answering") {
+      var confirm = el("button", "btn", "确认");
+      if (selected === null) { confirm.setAttribute("disabled", ""); }
+      confirm.onclick = function () { onConfirm(card); };
+      box.appendChild(confirm);
+      return box;
+    }
+    // revealed
+    var correct = (selected === card.answer);
+    if (correct && !guessed) {
+      var g = el("button", "btn ghost", "我刚是蒙的");
+      g.onclick = function () { onGuessed(card); };
+      box.appendChild(g);
+    }
+    var rep = el("button", "btn ghost", "卡有误");
+    rep.onclick = function () { onReport(card); };
+    box.appendChild(rep);
+
+    var next = el("button", "btn", qpos + 1 >= queue.length ? "完成" : "下一题");
+    next.onclick = onNext;
+    box.appendChild(next);
+    return box;
+  }
+
+  function doneScreen(title, sub) {
+    var d = el("div", "done");
+    d.appendChild(el("h2", null, title));
+    d.appendChild(el("p", null, sub));
+    return d;
+  }
+
+  // ---------- 交互 ----------
+  function beginCard() {
+    phase = "answering";
+    selected = null;
+    guessed = false;
+    var card = queue[qpos];
+    currentOptions = shuffle(card.options || []);  // 每次随机打乱，不固定左右
+    render();
+  }
+
+  function onSelect(card, opt) {
+    if (phase !== "answering") { return; }
+    selected = opt;
+    updateSlot(card);
+    // 重绘选项高亮 + 启用确认
+    render();
+  }
+
+  function onConfirm(card) {
+    if (selected === null) { return; }
+    phase = "revealed";
+    applyScheduling(card);
+    render();
+  }
+
+  // 填对没填对是客观信号，直接驱动盒子升降（蒙对不算掌握）
+  function applyScheduling(card) {
+    var p = progOf(card.id);
+    var firstTime = (p.seen === 0);
+    p.seen += 1;
+    var correct = (selected === card.answer);
+    if (correct && !guessed) {
+      p.correct += 1;
+      p.box = Math.min(p.box + 1, BOX_MAX);
+    } else {
+      p.wrong += 1;
+      p.box = 1;  // 答错 / 自认蒙对 -> 打回盒 1，很快再考
+    }
+    p.due = today() + intervalForBox(p.box);
+    progress[card.id] = p;
+    saveJSON(PROGRESS_KEY, progress);
+    if (firstTime) {
+      bumpNewCount();
+    }
+    // 答错的卡本会话末尾再刷一遍，直到练对
+    if (!correct || guessed) {
+      queue.push(card);
+    }
+  }
+
+  function onGuessed(card) {
+    if (guessed) { return; }
+    guessed = true;
+    // 撤销刚才「升盒」的奖励：打回盒 1 重排
+    var p = progOf(card.id);
+    if (p.correct > 0) { p.correct -= 1; }
+    p.wrong += 1;
+    p.box = 1;
+    p.due = today();
+    progress[card.id] = p;
+    saveJSON(PROGRESS_KEY, progress);
+    if (!containsCard(card)) { queue.push(card); }
+    render();
+    toast("已记为「未掌握」，本会话会再考这张");
+  }
+
+  function containsCard(card) {
+    for (var i = qpos + 1; i < queue.length; i++) {
+      if (queue[i].id === card.id) { return true; }
+    }
+    return false;
+  }
+
+  function onNext() {
+    qpos += 1;
+    if (qpos >= queue.length) {
+      render();
+      return;
+    }
+    beginCard();
+  }
+
+  function onReport(card) {
+    var note = prompt("这张卡哪里有问题？（会存在本机，可在设置里导出）", "");
+    if (note === null) { return; }
+    reports.push({ cardId: card.id, note: note, at: new Date().toISOString() });
+    saveJSON(REPORTS_KEY, reports);
+    toast("已记录，谢谢反馈");
+  }
+
+  function studyAll() {
+    queue = buildQueueAll();
+    qpos = 0;
+    beginCard();
+    closeSheet();
+  }
+
+  // ---------- 设置面板 ----------
+  var sheet = document.getElementById("sheet");
+  function openSheet() { sheet.classList.add("show"); }
+  function closeSheet() { sheet.classList.remove("show"); }
+  document.getElementById("btnMenu").onclick = openSheet;
+  sheet.onclick = function (e) { if (e.target === sheet) { closeSheet(); } };
+
+  document.getElementById("btnStudyAll").onclick = studyAll;
+
+  document.getElementById("btnExport").onclick = function () {
+    var payload = {
+      app: "hot100-crux",
+      version: window.CRUX_CARDS_VERSION || "?",
+      exportedAt: new Date().toISOString(),
+      progress: progress,
+      reports: reports
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "crux-progress-" + today() + ".json";
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  };
+
+  document.getElementById("btnImport").onclick = function () {
+    document.getElementById("fileImport").click();
+  };
+  document.getElementById("fileImport").onchange = function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) { return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(reader.result);
+        if (data.progress) {
+          progress = data.progress;
+          saveJSON(PROGRESS_KEY, progress);
+        }
+        if (data.reports) {
+          reports = data.reports;
+          saveJSON(REPORTS_KEY, reports);
+        }
+        queue = buildQueue();
+        qpos = 0;
+        beginCard();
+        closeSheet();
+        toast("进度已导入");
+      } catch (err) {
+        toast("导入失败：文件格式不对");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  document.getElementById("btnReset").onclick = function () {
+    if (!confirm("确定清空本机所有进度？清空前建议先导出备份。")) { return; }
+    progress = {};
+    reports = [];
+    localStorage.removeItem(PROGRESS_KEY);
+    localStorage.removeItem(REPORTS_KEY);
+    localStorage.removeItem(DAYMETA_KEY);
+    queue = buildQueue();
+    qpos = 0;
+    beginCard();
+    closeSheet();
+    toast("已清空");
+  };
+
+  // ---------- 小工具 ----------
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 1800);
+  }
+
+  // 申请持久化存储，尽量抵抗浏览器在空间紧张 / 长期不用时清掉进度
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist();
+  }
+
+  // 注册 Service Worker，实现离线可用
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+
+  // ---------- 启动 ----------
+  if (queue.length > 0) {
+    beginCard();
+  } else {
+    render();
+  }
+})();
+</script>

@@ -1,0 +1,5 @@
+node_modules/
+scripts/*.png
+scripts/prob/
+scripts/problems-slim.json
+*.log

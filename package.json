@@ -1,0 +1,13 @@
+{
+  "name": "hot100-crux",
+  "version": "0.1.0",
+  "private": true,
+  "description": "把 Hot100 题解易错临界点做成挖空卡的离线 PWA 刷题工具",
+  "scripts": {
+    "start": "node server.js",
+    "verify": "node scripts/verify.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
